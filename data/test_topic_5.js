@@ -1,0 +1,1 @@
+topic5 = [{"topic_5":1,"term":"government","beta":0.0091},{"topic_5":2,"term":"market","beta":0.0053},{"topic_5":3,"term":"film","beta":0.0064},{"topic_5":4,"term":"people","beta":0.0106},{"topic_5":5,"term":"games","beta":0.008}]

@@ -1,0 +1,369 @@
+<head>
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<style>
+    table,
+    td,
+    th {
+        border: 1px solid black;
+    }
+</style>
+
+<body>
+
+    <div style='background-color: black; width: 100%; height: 100%; position:fixed; top: 0; left: 0; '>
+        <div id='nav'
+            style='position: fixed; left: 50; top: 25; height: 50; width: 1100; text-align: bottom; background-color: purple; border: 1px solid black'>
+            <span style='margin: 10px; color: white; position: absolute; top: 5px;'>Time Select: </span>
+            <select id='time-select' style='position: absolute; height: 100%; left: 110px;'></select>
+        </div>
+
+        <div style="position: fixed; left: 50; top: 100; width: 550; height: 700; border: 1px solid white; padding: 0">
+            <svg id='treemap' width=550 height=700 viewbox='0 0 550 700' style='margin: 0'></svg>
+        </div>
+
+        <div style='position: fixed; left: 625; top: 100; width: 525; height: 700; border: 1px solid white; padding: 0'>
+            <svg id='umap' width=525 height=700 viewbox='0 0 550 700'></svg>
+        </div>
+
+        <div id='modal' style='display: none; width: 100%; height: 100%; position: absolute;'>
+            <div style='background-color: black; opacity: .7; width: 100%; height: 100%; position: absolute;'>
+
+            </div>
+            <div style='background-color: #3D4849;  width: 80%; height: 5%; left: 10%; top: 10%; position: absolute;'>
+                <button id='closeModal'
+                    style='color: white; background-color: black; height: 100%; right: 0; position: absolute;'>X</button>
+            </div>
+            <div
+                style='overflow-y: scroll; width: 80%; height: 75%; position: absolute; left: 10%; top: 15%; background-color: lightgrey; border: 1px solid black; color: white;'>
+                <h2 id='catTitle' style=''></h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Document</th>
+                            <th>Text</th>
+                        </tr>
+                    </thead>
+                    <tbody id='catDocs'>
+                    </tbody>
+
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src='../data/test_tree3.js'></script>
+<script src='../data/test_umap.js'></script>
+<script src='../data/test_documents.js'></script>
+<script src='../data/test_topic_5.js'></script>
+<script src='../data/test_topic_50.js'></script>
+<script>
+    let treesvg = d3.select('#treemap')
+
+    let treemapParent = (data, value, width, height) => d3.treemap()
+        .size([width, height])
+        .padding(1)
+        .round(true)
+        (d3.hierarchy(data)
+            .sum(function (d) {
+                return (d[value])
+            }))
+
+    let treemapChild = (data, value, width, height) => d3.treemap()
+        .size([width, height])
+        .padding(1)
+        .round(true)
+        (d3.hierarchy(data)
+            .sum(function (d) {
+                return (d[value])
+            })
+            .sort((a, b) => b.value - a.value))
+
+    let firstTree = {
+        name: 'parent',
+        children: treeData[0]
+    }
+
+    const rootAll = treemapParent(firstTree, 'All', 550, 700)
+    const root1 = treemapParent(firstTree, 'month1', 550, 700)
+    const root2 = treemapParent(firstTree, 'month2', 550, 700)
+    const root3 = treemapParent(firstTree, 'month3', 550, 700)
+    let timeList = ['All', 'month1', 'month2', 'month3']
+
+    let roots = [rootAll, root1, root2, root3]
+
+    let test = [1, 2, 3, 4, 5].map(i => roots.map(d => d.children.filter(x => x.data.name == i)[0]))
+
+    test2 = test.map(function (arr) {
+        let arrGroup = arr.map(function (d, i) {
+            let tmpObj = {
+                data: d['data']
+            }
+
+            tmpObj[timeList[i] + '_x0'] = d.x0
+            tmpObj[timeList[i] + '_x1'] = d.x1
+            tmpObj[timeList[i] + '_y0'] = d.y0
+            tmpObj[timeList[i] + '_y1'] = d.y1
+
+            return (tmpObj)
+        })
+
+        let arrComb = arrGroup.reduce(function (a, b) {
+            return ({
+                ...a,
+                ...b
+            })
+        })
+
+        return (arrComb)
+        // tmpRoot = roots[i].leaves().map(function (d) {
+        //     let keys = Object.keys(d)
+
+        //     for (index = 0; index < keys.length; index++) {
+        //         d[timeList[i] + '_' + keys[index]] = d[keys[index]]
+        //         delete d[keys[index]]
+        //     }
+        //     return (d)
+        // })
+        // return (tmpRoot)
+    })
+
+    const leaf = treesvg.selectAll('g')
+        .data(test2)
+        .join('g')
+        .attr('transform', d => `translate(${d.All_x0}, ${d.All_y0})`)
+
+    color = d3.scaleOrdinal(d3.schemeCategory10)
+
+    leaf.append("rect")
+        .attr('class', 'leaf-rect')
+        .attr("fill", d => {
+            // while (d.depth > 1) d = d.parent;
+            return color(d.data.name);
+        })
+        .attr("fill-opacity", 0.6)
+        .attr("width", d => d.All_x1 - d.All_x0)
+        .attr("height", d => d.All_y1 - d.All_y0)
+        .attr('class', d => 'topic-' + d.data.name)
+        .on('mouseover', function (d) {
+            umapCover.attr('opacity', 1).raise()
+            umapsvg.selectAll('.' + this.className.baseVal).raise()
+        })
+        .on('mouseout', function () {
+            umapCover.attr('opacity', 0).lower()
+        })
+        .on('click', getDocsMain)
+
+    function getSubTree(d) {
+        subTree = treeData[1].filter(x => x.name == d.data.name)[0]
+
+        currentTime = d3.select('#time-select').node().value
+
+        x0 = `${currentTime}_x0`
+        x1 = `${currentTime}_x1`
+        y0 = `${currentTime}_y0`
+        y1 = `${currentTime}_y1`
+
+        tempRoot = treemapChild(subTree, currentTime, d[x1] - d[x0], d[y1] - d[y0])
+
+        if (typeof tempG !== 'undefined') {
+            tempG.remove()
+        }
+
+        tempG = treesvg.append('g')
+            .attr('id', 'tempg')
+            .attr('transform', `translate(${d[x0]}, ${d[y0]})`)
+
+        subLeaf = tempG.selectAll('g')
+            .data(tempRoot.leaves())
+            .join('g')
+            .attr('transform', function (x) {
+                return `translate(${x.x0}, ${x.y0})`
+            })
+
+        subLeaf.append("rect")
+            .attr("fill", color(d.data.name))
+            .attr("fill-opacity", 0.6)
+            .attr("width", x => x.x1 - x.x0)
+            .attr("height", x => x.y1 - x.y0)
+            .attr('class', function (x) {
+                let prepend = ''
+                if (d3.select('#time-select').node().value != 'All') {
+                    prepend = `${d3.select('#time-select').node().value}-`
+                }
+                prepend += `topic-${d.data.name}-${x.data.name}`
+                return (prepend)
+            })
+            .on('click', getDocsChild)
+            .on('mouseover', function () {
+                umapCover.attr('opacity', 1).raise()
+                umapsvg.selectAll('.' + this.className.baseVal).raise()
+            })
+            .on('mouseout', function () {
+                umapCover.attr('opacity', 0).lower()
+            })
+
+        treesvg.transition()
+            .duration(1000)
+            .ease(d3.easeLinear)
+            .attr('viewBox', [d[x0] - 10, d[y0] - 10, d[x1] - d[x0] + 20, d[y1] - d[y0] + 20])
+
+        infoButton = tempG.append('g')
+            .attr('class', 'infoButton')
+            .attr('transform', d => `translate(10, 5)`)
+            .attr('opacity', .8)
+
+        infoButton.append('circle')
+            .attr('cx', 20)
+            .attr('cy', 30)
+            .attr('r', 15)
+            .attr('fill', 'lightgrey')
+
+        infoButton.append("text")
+            .attr("x", 10)
+            .attr("y", 34)
+            .attr('class', 'fa')
+            .attr('font-size', '20px')
+            .text('\uf010')
+            .style('pointer-events', 'none')
+
+        infoButton.on('click', function (d) {
+            tempG.remove()
+            treesvg.transition()
+                .duration(1000)
+                .ease(d3.easeLinear)
+                .attr('viewBox', [0, 0, 550, 700])
+        })
+
+    }
+    infoButtons = leaf.append('g')
+        .attr('class', 'infoButtons')
+        .attr('transform', d => `translate(10, 5)`)
+        .attr('opacity', .8)
+
+    infoButtons.append('circle')
+        .attr('cx', 20)
+        .attr('cy', 30)
+        .attr('r', 15)
+        .attr('fill', 'lightgrey')
+
+    infoButtons.append("text")
+        .attr("x", 10)
+        .attr("y", 34)
+        .attr('class', 'fa')
+        .attr('font-size', function (d) {
+            return '20px'
+        })
+        .text('\uf00e')
+        .style('pointer-events', 'none')
+
+    infoButtons.on('click', getSubTree)
+
+    function getDocsMain(d) {
+        let time = d3.select('#time-select').node().value
+        let topic = d.data.name
+        let data;
+
+        if (time == 'All') {
+            data = documentData.filter(d => d.topic_5 == topic)
+        } else {
+            data = documentData.filter(d => d.topic_5 == topic & d.time == time)
+        }
+
+        d3.select('#catDocs').selectAll('tr').remove()
+        d3.select('#catDocs').selectAll('tr').data(data).enter().append('tr').html(d =>
+            `<td>${d.id}</td><td>${d.text}</td>`)
+        d3.select('#modal').style('display', 'block')
+    }
+
+    function getDocsChild(d) {
+        let time = d3.select('#time-select').node().value
+        let subtopic = d.data.name
+        let topic = d.parent.data.name
+
+        if (time == 'All') {
+            data = documentData.filter(d => d.topic_5 == topic & d.topic_50 == subtopic)
+        } else {
+            data = documentData.filter(d => d.topic_5 == topic & d.topic_50 == subtopic & d.time == time)
+        }
+
+        d3.select('#catDocs').selectAll('tr').remove()
+        d3.select('#catDocs').selectAll('tr').data(data).enter().append('tr').html(d =>
+            `<td>${d.id}</td><td>${d.text}</td>`)
+        d3.select('#modal').style('display', 'block')
+    }
+
+    function leafChange(leaf, time) {
+        leaf.transition()
+            .duration(1000)
+            .attr('transform', d => `translate(${d[time + '_x0']}, ${d[time + '_y0']})`)
+
+        leaf.selectAll('rect')
+            .transition()
+            .duration(1000)
+            .attr("width", d => d[time + '_x1'] - d[time + '_x0'])
+            .attr("height", d => d[time + '_y1'] - d[time + '_y0'])
+
+        // infoButtons.attr('transform', d => `translate(${d[time+'_x1'] - d[time + '_x0'] - 20}, 5})`)
+    }
+</script>
+<script>
+    d3.select('#closeModal').on('click', function () {
+        d3.select('#modal').style('display', 'none')
+    })
+    //    d3.select('#catDocs').selectAll('tr').data(documentData).enter().append('tr').html(d => `<td>${d.id}</td><td>${d.text}</td>`)
+</script>
+<script>
+    umapsvg = d3.select('#umap')
+    umapWidth = 520
+    umapHeight = 650
+    xscale = d3.scaleLinear()
+        .domain(d3.extent(umapData, d => d.x))
+        .range([520, 5])
+
+    yscale = d3.scaleLinear()
+        .domain(d3.extent(umapData, d => d.y))
+        .range([5, 640])
+
+    umap = umapsvg.selectAll('circle')
+        .data(umapData)
+        .enter().append('circle')
+        .attr("cx", d => xscale(d.x))
+        .attr("cy", d => yscale(d.y))
+        .attr('r', 2.5)
+        .attr("fill", d => color(d.topic))
+        .attr('class', d => d.class)
+
+    umapCover = umapsvg.append('rect')
+        .attr('width', umapWidth)
+        .attr('height', umapHeight)
+        .attr('fill', 'black')
+        .attr('opacity', 0)
+
+    function umapChange(umap, time) {
+        if (time == 'All') {
+            umap.transition()
+                .duration(500)
+                .style('opacity', 1)
+        } else {
+            umap.transition()
+                .duration(500)
+                .style('opacity', d => d.time == time ? 1 : 0)
+        }
+    }
+</script>
+<script>
+    timeSelect = d3.select('#time-select')
+        .on('change', function (d) {
+            umapChange(umap, this.value)
+            leafChange(leaf, this.value)
+        })
+        .selectAll('option')
+        .data(['All', 'month1', 'month2', 'month3'])
+        .enter().append('option')
+        .attr('value', d => d)
+        .html(d => d)
+</script>
