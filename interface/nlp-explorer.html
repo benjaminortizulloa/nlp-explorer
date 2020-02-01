@@ -157,6 +157,14 @@
         })
         .on('click', getDocsMain)
 
+    leaf.append('text')
+        .attr('class', 'parentText')
+        .attr('x', "2px")
+        .attr('y', d => (d.All_y1 - d.All_y0) / 2)
+        .text(d => topic5.filter(x => x.topic_5 == d.data.name)[0].term)
+
+
+
     function getSubTree(d) {
         subTree = treeData[1].filter(x => x.name == d.data.name)[0]
 
@@ -205,6 +213,18 @@
             .on('mouseout', function () {
                 umapCover.attr('opacity', 0).lower()
             })
+
+        subLeaf.append('text')
+            .attr('class', 'childText')
+            .attr('x', "2px")
+            .attr('y', function (x) {
+                console.log(x);
+                return ((x.y1 - x.y0) / 2)
+            })
+            .attr('font-size', 8)
+            .text(x => topic50.filter(y => y.topic_50 == x.data.name)[0] ? topic50.filter(y => y.topic_50 == x.data
+                .name)[
+                0].term : '')
 
         treesvg.transition()
             .duration(1000)
