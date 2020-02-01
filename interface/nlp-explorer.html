@@ -327,6 +327,10 @@
             .attr("width", d => d[time + '_x1'] - d[time + '_x0'])
             .attr("height", d => d[time + '_y1'] - d[time + '_y0'])
 
+        leaf.selectAll('.parentText')
+            .transition()
+            .duration(1000)
+            .attr('y', d => (d[time + '_y1'] - d[time + '_y0']) / 2)
         // infoButtons.attr('transform', d => `translate(${d[time+'_x1'] - d[time + '_x0'] - 20}, 5})`)
     }
 </script>
